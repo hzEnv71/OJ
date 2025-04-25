@@ -1,13 +1,13 @@
 package service
 
 import (
-	"getcharzp.cn/define"
-	"getcharzp.cn/helper"
-	"getcharzp.cn/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"log"
 	"net/http"
+	"oj/define"
+	"oj/helper"
+	"oj/models"
 	"strconv"
 	"strings"
 	"time"

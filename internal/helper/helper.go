@@ -11,10 +11,10 @@ import (
 	"strconv"
 	"time"
 
-	"getcharzp.cn/define"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jordan-wright/email"
 	uuid "github.com/satori/go.uuid"
+	"oj/define"
 )
 
 type UserClaims struct {

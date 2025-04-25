@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"getcharzp.cn/helper"
 	"github.com/gin-gonic/gin"
+	"oj/helper"
 )
 
 func AuthUserCheck() gin.HandlerFunc {

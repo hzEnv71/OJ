@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"getcharzp.cn/define"
+	"oj/define"
 )
 
 type MyTime time.Time

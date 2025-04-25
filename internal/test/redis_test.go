@@ -3,8 +3,8 @@ package test
 import (
 	"context"
 	"fmt"
-	"getcharzp.cn/models"
 	"github.com/go-redis/redis/v8"
+	"oj/models"
 	"testing"
 	"time"
 )

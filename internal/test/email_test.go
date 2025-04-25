@@ -2,9 +2,9 @@ package test
 
 import (
 	"crypto/tls"
-	"getcharzp.cn/define"
 	"github.com/jordan-wright/email"
 	"net/smtp"
+	"oj/define"
 	"testing"
 )
 

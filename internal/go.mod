@@ -1,4 +1,4 @@
-module getcharzp.cn
+module oj
 
 go 1.18
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"getcharzp.cn/router"
+	"oj/router"
 )
 
 func main() {

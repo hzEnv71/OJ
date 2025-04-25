@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"time"
 
-	"getcharzp.cn/define"
-	"getcharzp.cn/helper"
-	"getcharzp.cn/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"oj/define"
+	"oj/helper"
+	"oj/models"
 )
 
 // ContestCreate

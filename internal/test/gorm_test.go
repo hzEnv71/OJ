@@ -2,9 +2,9 @@ package test
 
 import (
 	"fmt"
-	"getcharzp.cn/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"oj/models"
 	"testing"
 )
 
