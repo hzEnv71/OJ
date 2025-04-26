@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/smtp"
+	"net/textproto"
 	"os"
 	"strconv"
 	"time"
@@ -68,13 +69,16 @@ func AnalyseToken(tokenString string) (*UserClaims, error) {
 // SendCode
 // 发送验证码
 func SendCode(toUserEmail, code string) error {
-	e := email.NewEmail()
-	e.From = "Get <getcharzhaopan@163.com>"
-	e.To = []string{toUserEmail}
-	e.Subject = "验证码已发送，请查收"
-	e.HTML = []byte("您的验证码：<b>" + code + "</b>")
+	e := &email.Email{
+		To:      []string{toUserEmail},
+		From:    "Get <l2003hz@163.com>",
+		Subject: "验证码已发送，请查收",
+		Text:    []byte("Text Body is, of course, supported!"),
+		HTML:    []byte("您的验证码：<b>" + code + "</b>"),
+		Headers: textproto.MIMEHeader{},
+	}
 	return e.SendWithTLS("smtp.163.com:465",
-		smtp.PlainAuth("", "getcharzhaopan@163.com", define.MailPassword, "smtp.163.com"),
+		smtp.PlainAuth("", "l2003hz@163.com", "FPuvz3Byq7VV68eX", "smtp.163.com"),
 		&tls.Config{InsecureSkipVerify: true, ServerName: "smtp.163.com"})
 }
 

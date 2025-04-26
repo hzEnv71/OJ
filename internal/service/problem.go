@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"log"
@@ -73,7 +74,7 @@ func GetProblemDetail(c *gin.Context) {
 		Preload("ProblemCategories").Preload("ProblemCategories.CategoryBasic").
 		First(&data).Error
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusOK, gin.H{
 				"code": -1,
 				"msg":  "问题不存在",

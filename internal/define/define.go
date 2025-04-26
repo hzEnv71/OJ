@@ -1,16 +1,9 @@
 package define
 
-import (
-	"os"
-)
-
 var (
 	DefaultPage = "1"
 	DefaultSize = "20"
 )
-
-var MailPassword = os.Getenv("MailPassword")
-var MysqlDNS = os.Getenv("MysqlDNS")
 
 type ProblemBasic struct {
 	Identity          string      `json:"identity"`           // 问题表的唯一标识

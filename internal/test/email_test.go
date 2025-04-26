@@ -4,19 +4,21 @@ import (
 	"crypto/tls"
 	"github.com/jordan-wright/email"
 	"net/smtp"
-	"oj/define"
+	"net/textproto"
 	"testing"
 )
 
 func TestSendEmail(t *testing.T) {
-	e := email.NewEmail()
-	e.From = "Get <getcharzhaopan@163.com>"
-	e.To = []string{"getcharzp@qq.com"}
-	e.Subject = "验证码发送测试"
-	e.HTML = []byte("您的验证码：<b>123456</b>")
-	// 返回 EOF 时，关闭SSL重试
+	e := &email.Email{
+		To:      []string{"l2003hz@163.com"},
+		From:    "Get <l2003hz@163.com>",
+		Subject: "验证码已发送，请查收",
+		Text:    []byte("Text Body is, of course, supported!"),
+		HTML:    []byte("您的验证码：<b>" + "666666" + "</b>"),
+		Headers: textproto.MIMEHeader{},
+	}
 	err := e.SendWithTLS("smtp.163.com:465",
-		smtp.PlainAuth("", "getcharzhaopan@163.com", define.MailPassword, "smtp.163.com"),
+		smtp.PlainAuth("", "l2003hz@163.com", "FPuvz3Byq7VV68eX", "smtp.163.com"),
 		&tls.Config{InsecureSkipVerify: true, ServerName: "smtp.163.com"})
 	if err != nil {
 		t.Fatal(err)
