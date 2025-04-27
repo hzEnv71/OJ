@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"log"
@@ -28,8 +29,7 @@ func GetUserDetail(c *gin.Context) {
 		})
 		return
 	}
-	data := new(models.UserBasic)
-	err := models.DB.Omit("password").Where("identity = ? ", identity).Find(&data).Error
+	data, err := models.GetUserDetail(identity)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
@@ -61,11 +61,9 @@ func Login(c *gin.Context) {
 		return
 	}
 	password = helper.GetMd5(password)
-
-	data := new(models.UserBasic)
-	err := models.DB.Where("name = ? AND password = ? ", username, password).First(&data).Error
+	data, err := models.GetUserOne(username, password)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusOK, gin.H{
 				"code": -1,
 				"msg":  "用户名或密码错误",
@@ -78,7 +76,6 @@ func Login(c *gin.Context) {
 		})
 		return
 	}
-
 	token, err := helper.GenerateToken(data.Identity, data.Name, data.IsAdmin)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -112,7 +109,7 @@ func SendCode(c *gin.Context) {
 		return
 	}
 	code := helper.GetRand()
-	models.RDB.Set(c, email, code, time.Second*300)
+	models.RDB.Set(c, email, code, time.Second*300) //设置redis email过期时间5min
 	err := helper.SendCode(email, code)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -143,6 +140,7 @@ func Register(c *gin.Context) {
 	name := c.PostForm("name")
 	password := c.PostForm("password")
 	phone := c.PostForm("phone")
+	is_admin, _ := strconv.Atoi(c.PostForm("is_admin"))
 	if mail == "" || userCode == "" || name == "" || password == "" {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
@@ -187,16 +185,8 @@ func Register(c *gin.Context) {
 
 	// 数据的插入
 	userIdentity := helper.GetUUID()
-	data := &models.UserBasic{
-		Identity:  userIdentity,
-		Name:      name,
-		Password:  helper.GetMd5(password),
-		Phone:     phone,
-		Mail:      mail,
-		CreatedAt: models.MyTime(time.Now()),
-		UpdatedAt: models.MyTime(time.Now()),
-	}
-	err = models.DB.Create(data).Error
+	password = helper.GetMd5(password)
+	err = models.UserCreate(userIdentity, name, password, phone, mail, is_admin)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
@@ -204,9 +194,8 @@ func Register(c *gin.Context) {
 		})
 		return
 	}
-
 	// 生成 token
-	token, err := helper.GenerateToken(userIdentity, name, data.IsAdmin)
+	token, err := helper.GenerateToken(userIdentity, name, is_admin)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
@@ -237,11 +226,7 @@ func GetRankList(c *gin.Context) {
 		return
 	}
 	page = (page - 1) * size
-
-	var count int64
-	list := make([]*models.UserBasic, 0)
-	err = models.DB.Model(new(models.UserBasic)).Count(&count).Order("pass_num DESC, submit_num ASC").
-		Offset(page).Limit(size).Find(&list).Error
+	list, count, err := models.GetRankList(page, size)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
@@ -255,7 +240,6 @@ func GetRankList(c *gin.Context) {
 			v.Mail = string(mail[0][0]) + "**@" + mail[1]
 		}
 	}
-
 	c.JSON(http.StatusOK, gin.H{
 		"code": 200,
 		"data": map[string]interface{}{

@@ -2,6 +2,7 @@ package models
 
 import (
 	"gorm.io/gorm"
+	"time"
 )
 
 type UserBasic struct {
@@ -21,4 +22,38 @@ type UserBasic struct {
 
 func (table *UserBasic) TableName() string {
 	return "user_basic"
+}
+
+func GetUserDetail(identity string) (data *UserBasic, err error) {
+	data = new(UserBasic)
+	err = DB.Omit("password").Where("identity = ? ", identity).Find(&data).Error
+	return data, err
+}
+
+func GetUserOne(username, password string) (data *UserBasic, err error) {
+	data = new(UserBasic)
+	err = DB.Where("name = ? AND password = ? ", username, password).First(&data).Error
+	return data, err
+}
+
+func UserCreate(identity, name, password, phone, mail string, is_admin int) (err error) {
+	data := &UserBasic{
+		Identity:  identity,
+		Name:      name,
+		Password:  password,
+		Phone:     phone,
+		Mail:      mail,
+		CreatedAt: MyTime(time.Now()),
+		UpdatedAt: MyTime(time.Now()),
+		IsAdmin:   is_admin,
+	}
+	err = DB.Create(data).Error
+	return err
+}
+
+func GetRankList(page, size int) (list []*UserBasic, count int64, err error) {
+	list = make([]*UserBasic, 0)
+	err = DB.Model(new(UserBasic)).Count(&count).Order("pass_num DESC, submit_num ASC").
+		Offset(page).Limit(size).Find(&list).Error
+	return list, count, err
 }

@@ -2,10 +2,11 @@
     <div class="top-list">
         
         <div class="list">
-            <div class="item" v-for="item in rankList" :key="item.id">
+            <div class="item" v-for="(item,index) in rankList" :key="item">
                 
                     <div class="title">
-                        {{item.id}}.
+
+                        {{index+1}}.
                         {{item.name}}
                         <div class="sort">
                             <span>{{item.mail}}</span>

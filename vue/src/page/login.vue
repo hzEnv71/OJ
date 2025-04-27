@@ -50,6 +50,12 @@
           <el-form-item label="邮箱" prop="mail">
             <el-input v-model="registForm.mail"/>
           </el-form-item>
+          <el-form-item label="身份" prop="is_admin">
+            <el-select v-model="registForm.is_admin" placeholder="请选择用户身份" >
+              <el-option label="普通用户" value="0"></el-option>
+              <el-option label="管理员" value="1"></el-option>
+            </el-select>
+          </el-form-item>
           <el-form-item label="验证码" prop="code">
             <el-row :gutter="20">
               <el-col :span="12">
@@ -104,7 +110,8 @@ const registForm = reactive({
   name: "",
   password: "",
   mail: '',
-  code: ''
+  code: '',
+  is_admin:'',
 })
 const rules = reactive({
   username: [
@@ -123,10 +130,12 @@ const rules = reactive({
     {required: true, message: "请输入邮箱", trigger: "blur"},
 
   ],
-
-
   password: [
     {required: true, message: "请输入密码", trigger: "blur"},
+
+  ],
+  is_admin: [
+    {required: true, message: "请选择用户身份", trigger: "blur"},
 
   ],
 });
