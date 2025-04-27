@@ -10,7 +10,6 @@ import (
 	"oj/helper"
 	"oj/models"
 	"strconv"
-	"time"
 )
 
 // GetProblemList
@@ -69,10 +68,7 @@ func GetProblemDetail(c *gin.Context) {
 		})
 		return
 	}
-	data := new(models.ProblemBasic)
-	err := models.DB.Where("identity = ?", identity).
-		Preload("ProblemCategories").Preload("ProblemCategories.CategoryBasic").
-		First(&data).Error
+	data, err := models.GetProblemDetail(identity)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusOK, gin.H{
@@ -121,44 +117,7 @@ func ProblemCreate(c *gin.Context) {
 		return
 	}
 	identity := helper.GetUUID()
-	data := &models.ProblemBasic{
-		Identity:   identity,
-		Title:      in.Title,
-		Content:    in.Content,
-		MaxRuntime: in.MaxRuntime,
-		MaxMem:     in.MaxMem,
-		CreatedAt:  models.MyTime(time.Now()),
-		UpdatedAt:  models.MyTime(time.Now()),
-	}
-	// 处理分类
-	categoryBasics := make([]*models.ProblemCategory, 0)
-	for _, id := range in.ProblemCategories {
-		categoryBasics = append(categoryBasics, &models.ProblemCategory{
-			ProblemId:  data.ID,
-			CategoryId: uint(id),
-			CreatedAt:  models.MyTime(time.Now()),
-			UpdatedAt:  models.MyTime(time.Now()),
-		})
-	}
-	data.ProblemCategories = categoryBasics
-	// 处理测试用例
-	testCaseBasics := make([]*models.TestCase, 0)
-	for _, v := range in.TestCases {
-		// 举个例子 {"input":"1 2\n","output":"3\n"}
-		testCaseBasic := &models.TestCase{
-			Identity:        helper.GetUUID(),
-			ProblemIdentity: identity,
-			Input:           v.Input,
-			Output:          v.Output,
-			CreatedAt:       models.MyTime(time.Now()),
-			UpdatedAt:       models.MyTime(time.Now()),
-		}
-		testCaseBasics = append(testCaseBasics, testCaseBasic)
-	}
-	data.TestCases = testCaseBasics
-
-	// 创建问题
-	err = models.DB.Create(data).Error
+	err = models.ProblemCreate(identity, in)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
@@ -169,7 +128,7 @@ func ProblemCreate(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 200,
 		"data": map[string]interface{}{
-			"identity": data.Identity,
+			"identity": identity,
 		},
 	})
 }
@@ -199,72 +158,8 @@ func ProblemModify(c *gin.Context) {
 		})
 		return
 	}
-
-	if err := models.DB.Transaction(func(tx *gorm.DB) error {
-		// 问题基础信息保存 problem_basic
-		problemBasic := &models.ProblemBasic{
-			Identity:   in.Identity,
-			Title:      in.Title,
-			Content:    in.Content,
-			MaxRuntime: in.MaxRuntime,
-			MaxMem:     in.MaxMem,
-			UpdatedAt:  models.MyTime(time.Now()),
-		}
-		err := tx.Where("identity = ?", in.Identity).Updates(problemBasic).Error
-		if err != nil {
-			return err
-		}
-		// 查询问题详情
-		err = tx.Where("identity = ?", in.Identity).Find(problemBasic).Error
-		if err != nil {
-			return err
-		}
-
-		// 关联问题分类的更新
-		// 1、删除已存在的关联关系
-		err = tx.Where("problem_id = ?", problemBasic.ID).Delete(new(models.ProblemCategory)).Error
-		if err != nil {
-			return err
-		}
-		// 2、新增新的关联关系
-		pcs := make([]*models.ProblemCategory, 0)
-		for _, id := range in.ProblemCategories {
-			pcs = append(pcs, &models.ProblemCategory{
-				ProblemId:  problemBasic.ID,
-				CategoryId: uint(id),
-				CreatedAt:  models.MyTime(time.Now()),
-				UpdatedAt:  models.MyTime(time.Now()),
-			})
-		}
-		err = tx.Create(&pcs).Error
-		if err != nil {
-			return err
-		}
-		// 关联测试案例的更新
-		// 1、删除已存在的关联关系
-		err = tx.Where("problem_identity = ?", in.Identity).Delete(new(models.TestCase)).Error
-		if err != nil {
-			return err
-		}
-		// 2、增加新的关联关系
-		tcs := make([]*models.TestCase, 0)
-		for _, v := range in.TestCases {
-			// 举个例子 {"input":"1 2\n","output":"3\n"}
-			tcs = append(tcs, &models.TestCase{
-				Identity:        helper.GetUUID(),
-				ProblemIdentity: in.Identity,
-				Input:           v.Input,
-				Output:          v.Output,
-				CreatedAt:       models.MyTime(time.Now()),
-				UpdatedAt:       models.MyTime(time.Now()),
-			})
-		}
-		err = tx.Create(tcs).Error
-		if err != nil {
-			return err
-		}
-		return nil
-	}); err != nil {
+	err = models.ProblemModify(in)
+	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
 			"msg":  "Problem Modify Error:" + err.Error(),

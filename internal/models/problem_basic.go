@@ -2,6 +2,9 @@ package models
 
 import (
 	"gorm.io/gorm"
+	"oj/define"
+	"oj/helper"
+	"time"
 )
 
 type ProblemBasic struct {
@@ -34,4 +37,123 @@ func GetProblemList(keyword, categoryIdentity string) *gorm.DB {
 			Where("pc.category_id = (SELECT cb.id FROM category_basic cb WHERE cb.identity = ? )", categoryIdentity)
 	}
 	return tx.Order("problem_basic.id DESC")
+}
+func GetProblemDetail(identity string) (data *ProblemBasic, err error) {
+	data = new(ProblemBasic)
+	err = DB.Where("identity = ?", identity).
+		Preload("ProblemCategories").Preload("ProblemCategories.CategoryBasic").
+		First(&data).Error
+	return data, err
+}
+func ProblemCreate(identity string, in *define.ProblemBasic) (err error) {
+	data := &ProblemBasic{
+		Identity:   identity,
+		Title:      in.Title,
+		Content:    in.Content,
+		MaxRuntime: in.MaxRuntime,
+		MaxMem:     in.MaxMem,
+		CreatedAt:  MyTime(time.Now()),
+		UpdatedAt:  MyTime(time.Now()),
+	}
+	// 处理分类
+	problemCategories := make([]*ProblemCategory, 0)
+	for _, id := range in.ProblemCategories {
+		pc := &ProblemCategory{
+			ProblemId:  data.ID,
+			CategoryId: uint(id),
+			CreatedAt:  MyTime(time.Now()),
+			UpdatedAt:  MyTime(time.Now()),
+		}
+		problemCategories = append(problemCategories, pc)
+	}
+	data.ProblemCategories = problemCategories
+	// 处理测试用例
+	testCaseBasics := make([]*TestCase, 0)
+	for _, v := range in.TestCases {
+		// 举个例子 {"input":"1 2\n","output":"3\n"}
+		testCaseBasic := &TestCase{
+			Identity:        helper.GetUUID(),
+			ProblemIdentity: identity,
+			Input:           v.Input,
+			Output:          v.Output,
+			CreatedAt:       MyTime(time.Now()),
+			UpdatedAt:       MyTime(time.Now()),
+		}
+		testCaseBasics = append(testCaseBasics, testCaseBasic)
+	}
+	data.TestCases = testCaseBasics
+	// 创建问题
+	err = DB.Create(data).Error
+	return err
+}
+func ProblemModify(in *define.ProblemBasic) (err error) {
+	var modify = func(tx *gorm.DB) error {
+		// 问题基础信息保存 problem_basic
+		problemBasic := &ProblemBasic{
+			Identity:   in.Identity,
+			Title:      in.Title,
+			Content:    in.Content,
+			MaxRuntime: in.MaxRuntime,
+			MaxMem:     in.MaxMem,
+			UpdatedAt:  MyTime(time.Now()),
+		}
+		// 更新问题
+		err := tx.Where("identity = ?", in.Identity).Updates(problemBasic).Error
+		if err != nil {
+			return err
+		}
+		// 查询问题详情
+		err = tx.Where("identity = ?", in.Identity).Find(problemBasic).Error
+		if err != nil {
+			return err
+		}
+
+		// 关联问题分类的更新
+		// 1、删除已存在的关联关系
+		err = tx.Where("problem_id = ?", problemBasic.ID).Delete(new(ProblemCategory)).Error
+		if err != nil {
+			return err
+		}
+		// 2、新增新的关联关系
+		pcs := make([]*ProblemCategory, 0)
+		for _, id := range in.ProblemCategories {
+			pcs = append(pcs, &ProblemCategory{
+				ProblemId:  problemBasic.ID,
+				CategoryId: uint(id),
+				CreatedAt:  MyTime(time.Now()),
+				UpdatedAt:  MyTime(time.Now()),
+			})
+		}
+		err = tx.Create(&pcs).Error
+		if err != nil {
+			return err
+		}
+		// 关联测试案例的更新
+		// 1、删除已存在的关联关系
+		err = tx.Where("problem_identity = ?", in.Identity).Delete(new(TestCase)).Error
+		if err != nil {
+			return err
+		}
+		// 2、增加新的关联关系
+		tcs := make([]*TestCase, 0)
+		for _, v := range in.TestCases {
+			// 举个例子 {"input":"1 2\n","output":"3\n"}
+			tc := &TestCase{
+				Identity:        helper.GetUUID(),
+				ProblemIdentity: in.Identity,
+				Input:           v.Input,
+				Output:          v.Output,
+				CreatedAt:       MyTime(time.Now()),
+				UpdatedAt:       MyTime(time.Now()),
+			}
+			tcs = append(tcs, tc)
+		}
+		err = tx.Create(tcs).Error
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	DB.Transaction(modify)
+	return err
 }
