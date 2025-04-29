@@ -32,16 +32,9 @@ func GetProblemList(c *gin.Context) {
 	var count int64
 	keyword := c.Query("keyword")
 	categoryIdentity := c.Query("category_identity")
-
-	list := make([]*models.ProblemBasic, 0)
-	err = models.GetProblemList(keyword, categoryIdentity).Distinct("`problem_basic`.`id`").Count(&count).Error
+	list, count, err := models.GetProblemList(keyword, categoryIdentity, page, size)
 	if err != nil {
-		log.Println("GetProblemList Count Error:", err)
-		return
-	}
-	err = models.GetProblemList(keyword, categoryIdentity).Offset(page).Limit(size).Find(&list).Error
-	if err != nil {
-		log.Println("Get Problem List Error:", err)
+		log.Println("Get ProblemList Error:", err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{

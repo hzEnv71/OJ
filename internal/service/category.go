@@ -8,7 +8,6 @@ import (
 	"oj/helper"
 	"oj/models"
 	"strconv"
-	"time"
 )
 
 // GetCategoryList
@@ -27,12 +26,8 @@ func GetCategoryList(c *gin.Context) {
 		return
 	}
 	page = (page - 1) * size
-	var count int64
 	keyword := c.Query("keyword")
-
-	categoryList := make([]*models.CategoryBasic, 0)
-	err = models.DB.Model(new(models.CategoryBasic)).Where("name like ?", "%"+keyword+"%").
-		Count(&count).Limit(size).Offset(page).Find(&categoryList).Error
+	list, count, err := models.GetCategoryList(keyword, page, size)
 	if err != nil {
 		log.Println("GetCategoryList Error:", err)
 		c.JSON(http.StatusOK, gin.H{
@@ -44,7 +39,7 @@ func GetCategoryList(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 200,
 		"data": map[string]interface{}{
-			"list":  categoryList,
+			"list":  list,
 			"count": count,
 		},
 	})
@@ -61,14 +56,8 @@ func GetCategoryList(c *gin.Context) {
 func CategoryCreate(c *gin.Context) {
 	name := c.PostForm("name")
 	parentId, _ := strconv.Atoi(c.PostForm("parentId"))
-	category := &models.CategoryBasic{
-		Identity:  helper.GetUUID(),
-		Name:      name,
-		ParentId:  parentId,
-		CreatedAt: models.MyTime(time.Now()),
-		UpdatedAt: models.MyTime(time.Now()),
-	}
-	err := models.DB.Create(category).Error
+	identity := helper.GetUUID()
+	err := models.CategoryCreate(identity, name, parentId)
 	if err != nil {
 		log.Println("CategoryCreate Error:", err)
 		c.JSON(http.StatusOK, gin.H{
@@ -103,13 +92,7 @@ func CategoryModify(c *gin.Context) {
 		})
 		return
 	}
-	category := &models.CategoryBasic{
-		Identity:  identity,
-		Name:      name,
-		ParentId:  parentId,
-		UpdatedAt: models.MyTime(time.Now()),
-	}
-	err := models.DB.Model(new(models.CategoryBasic)).Where("identity = ?", identity).Updates(category).Error
+	err := models.CategoryModify(identity, name, parentId)
 	if err != nil {
 		log.Println("CategoryModify Error:", err)
 		c.JSON(http.StatusOK, gin.H{
@@ -157,7 +140,7 @@ func CategoryDelete(c *gin.Context) {
 		})
 		return
 	}
-	err = models.DB.Where("identity = ?", identity).Delete(new(models.CategoryBasic)).Error
+	err = models.CategoryDelete(identity)
 	if err != nil {
 		log.Println("Delete CategoryBasic Error:", err)
 		c.JSON(http.StatusOK, gin.H{

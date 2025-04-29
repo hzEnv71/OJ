@@ -27,7 +27,8 @@ func (table *ProblemBasic) TableName() string {
 	return "problem_basic"
 }
 
-func GetProblemList(keyword, categoryIdentity string) *gorm.DB {
+func GetProblemList(keyword, categoryIdentity string, page, size int) (data []*ProblemBasic, count int64, err error) {
+	data = make([]*ProblemBasic, 0)
 	tx := DB.Model(new(ProblemBasic)).Distinct("`problem_basic`.`id`").Select("DISTINCT(`problem_basic`.`id`), `problem_basic`.`identity`, "+
 		"`problem_basic`.`title`, `problem_basic`.`max_runtime`, `problem_basic`.`max_mem`, `problem_basic`.`pass_num`, "+
 		"`problem_basic`.`submit_num`, `problem_basic`.`created_at`, `problem_basic`.`updated_at`, `problem_basic`.`deleted_at` ").Preload("ProblemCategories").Preload("ProblemCategories.CategoryBasic").
@@ -36,7 +37,8 @@ func GetProblemList(keyword, categoryIdentity string) *gorm.DB {
 		tx.Joins("RIGHT JOIN problem_category pc on pc.problem_id = problem_basic.id").
 			Where("pc.category_id = (SELECT cb.id FROM category_basic cb WHERE cb.identity = ? )", categoryIdentity)
 	}
-	return tx.Order("problem_basic.id DESC")
+	err = tx.Order("problem_basic.id DESC").Distinct("`problem_basic`.`id`").Count(&count).Offset(page).Limit(size).Find(&data).Error
+	return data, count, err
 }
 func GetProblemDetail(identity string) (data *ProblemBasic, err error) {
 	data = new(ProblemBasic)

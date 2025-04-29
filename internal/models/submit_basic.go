@@ -22,10 +22,11 @@ func (table *SubmitBasic) TableName() string {
 	return "submit_basic"
 }
 
-func GetSubmitList(problemIdentity, userIdentity string, status int) *gorm.DB {
-	tx := DB.Model(new(SubmitBasic)).Preload("ProblemBasic", func(db *gorm.DB) *gorm.DB {
-		return db.Omit("content")
-	}).Preload("UserBasic", func(db *gorm.DB) *gorm.DB {
+func GetSubmitList(problemIdentity, userIdentity string, status, page, size int) (list []*SubmitBasic, count int64, err error) {
+	tx := DB.Model(new(SubmitBasic)).
+		Preload("ProblemBasic", func(db *gorm.DB) *gorm.DB {
+			return db.Omit("content")
+		}).Preload("UserBasic", func(db *gorm.DB) *gorm.DB {
 		return db.Omit("password")
 	})
 	if problemIdentity != "" {
@@ -37,5 +38,7 @@ func GetSubmitList(problemIdentity, userIdentity string, status int) *gorm.DB {
 	if status != 0 {
 		tx.Where("status = ? ", status)
 	}
-	return tx.Order("submit_basic.id DESC")
+	list = make([]*SubmitBasic, 0)
+	err = tx.Order("submit_basic.id DESC").Count(&count).Offset(page).Limit(size).Find(&list).Error
+	return list, count, err
 }

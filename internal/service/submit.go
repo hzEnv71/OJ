@@ -37,15 +37,10 @@ func GetSubmitList(c *gin.Context) {
 		return
 	}
 	page = (page - 1) * size
-
-	var count int64
-	list := make([]models.SubmitBasic, 0)
-
 	problemIdentity := c.Query("problem_identity")
 	userIdentity := c.Query("user_identity")
 	status, _ := strconv.Atoi(c.Query("status"))
-	tx := models.GetSubmitList(problemIdentity, userIdentity, status)
-	err = tx.Count(&count).Offset(page).Limit(size).Find(&list).Error
+	list, count, err := models.GetSubmitList(problemIdentity, userIdentity, status, page, size)
 	if err != nil {
 		log.Println("Get Problem List Error:", err)
 		c.JSON(http.StatusOK, gin.H{
