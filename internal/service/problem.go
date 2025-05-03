@@ -29,7 +29,6 @@ func GetProblemList(c *gin.Context) {
 		return
 	}
 	page = (page - 1) * size
-	var count int64
 	keyword := c.Query("keyword")
 	categoryIdentity := c.Query("category_identity")
 	list, count, err := models.GetProblemList(keyword, categoryIdentity, page, size)

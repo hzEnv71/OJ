@@ -34,19 +34,13 @@ func GetTestCase(c *gin.Context) {
 		})
 		return
 	}
-	var count int64
-
-	data := make([]*models.TestCase, 0)
-	tx := models.DB.Model(new(models.TestCase)).Where("problem_identity = ?", problemIdentity).Count(&count)
-	if c.Query("size") != "" {
-		tx.Offset(page).Limit(page)
-	}
-	err = tx.Find(&data).Error
+	data, count, err := models.GetTestCase(problemIdentity, page, size)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
 			"msg":  "Get TestCase List Error:" + err.Error(),
 		})
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"code": 200,

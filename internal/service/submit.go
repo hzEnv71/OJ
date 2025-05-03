@@ -122,8 +122,50 @@ func Submit(c *gin.Context) {
 	// 提示信息
 	var msg string
 
+	runner := func(tc *models.TestCase) {
+		cmd := exec.Command("go", "run", path)
+		var out, stderr bytes.Buffer
+		cmd.Stderr = &stderr
+		cmd.Stdout = &out
+		stdinPipe, err := cmd.StdinPipe()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		io.WriteString(stdinPipe, tc.Input+"\n")
+
+		var bm runtime.MemStats
+		runtime.ReadMemStats(&bm)
+		if err := cmd.Run(); err != nil {
+			log.Println(err, stderr.String())
+			if err.Error() == "exit status 2" {
+				msg = stderr.String()
+				CE <- 1
+				return
+			}
+		}
+		var em runtime.MemStats
+		runtime.ReadMemStats(&em)
+		// 答案错误
+		if tc.Output != out.String() {
+			WA <- 1
+			return
+		}
+		// 运行超内存
+		if em.Alloc/1024-(bm.Alloc/1024) > uint64(pb.MaxMem) {
+			OOM <- 1
+			return
+		}
+		lock.Lock()
+		passCount++
+		// 答案正确
+		if passCount == len(pb.TestCases) {
+			AC <- 1
+		}
+		lock.Unlock()
+	}
+
 	// 检查代码的合法性
-	v, err := helper.CheckGoCodeValid(path)
+	ok, err := helper.CheckGoCodeValid(path)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
@@ -131,72 +173,24 @@ func Submit(c *gin.Context) {
 		})
 		return
 	}
-	if !v {
+	if !ok {
 		go func() {
-			EC <- struct{}{}
+			EC <- struct{}{} // 无效代码
 		}()
 	} else {
 		for _, testCase := range pb.TestCases {
-			testCase := testCase
-			go func() {
-				cmd := exec.Command("go", "run", path)
-				var out, stderr bytes.Buffer
-				cmd.Stderr = &stderr
-				cmd.Stdout = &out
-				stdinPipe, err := cmd.StdinPipe()
-				if err != nil {
-					log.Fatalln(err)
-				}
-				io.WriteString(stdinPipe, testCase.Input+"\n")
-
-				var bm runtime.MemStats
-				runtime.ReadMemStats(&bm)
-				if err := cmd.Run(); err != nil {
-					log.Println(err, stderr.String())
-					if err.Error() == "exit status 2" {
-						msg = stderr.String()
-						CE <- 1
-						return
-					}
-				}
-				var em runtime.MemStats
-				runtime.ReadMemStats(&em)
-
-				// 答案错误
-				if testCase.Output != out.String() {
-					WA <- 1
-					return
-				}
-				// 运行超内存
-				if em.Alloc/1024-(bm.Alloc/1024) > uint64(pb.MaxMem) {
-					OOM <- 1
-					return
-				}
-				lock.Lock()
-				passCount++
-				if passCount == len(pb.TestCases) {
-					AC <- 1
-				}
-				lock.Unlock()
-			}()
+			tc := testCase
+			go runner(tc)
 		}
 	}
 
 	select {
-	case <-EC:
-		msg = "无效代码"
-		sb.Status = 6
-	case <-WA:
-		msg = "答案错误"
-		sb.Status = 2
-	case <-OOM:
-		msg = "运行超内存"
-		sb.Status = 4
-	case <-CE:
-		sb.Status = 5
 	case <-AC:
 		msg = "答案正确"
 		sb.Status = 1
+	case <-WA:
+		msg = "答案错误"
+		sb.Status = 2
 	case <-time.After(time.Millisecond * time.Duration(pb.MaxRuntime)):
 		if passCount == len(pb.TestCases) {
 			sb.Status = 1
@@ -205,9 +199,17 @@ func Submit(c *gin.Context) {
 			sb.Status = 3
 			msg = "运行超时"
 		}
-	}
+	case <-OOM:
+		msg = "运行超内存"
+		sb.Status = 4
+	case <-CE:
+		sb.Status = 5
+	case <-EC:
+		msg = "无效代码"
+		sb.Status = 6
 
-	if err = models.DB.Transaction(func(tx *gorm.DB) error {
+	}
+	tx := func(tx *gorm.DB) error {
 		err = tx.Create(sb).Error
 		if err != nil {
 			return errors.New("SubmitBasic Save Error:" + err.Error())
@@ -228,7 +230,8 @@ func Submit(c *gin.Context) {
 			return errors.New("ProblemBasic Modify Error:" + err.Error())
 		}
 		return nil
-	}); err != nil {
+	}
+	if err = models.DB.Transaction(tx); err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
 			"msg":  "Submit Error:" + err.Error(),

@@ -18,3 +18,9 @@ type TestCase struct {
 func (table *TestCase) TableName() string {
 	return "test_case"
 }
+
+func GetTestCase(identity string, page int, size int) (data []*TestCase, count int64, err error) {
+	data = make([]*TestCase, 0)
+	err = DB.Model(new(TestCase)).Where("problem_identity = ?", identity).Count(&count).Offset(page).Limit(size).Find(&data).Error
+	return
+}

@@ -101,16 +101,17 @@ func GetContestList(c *gin.Context) {
 	keyword := c.Query("keyword")
 
 	list := make([]*models.ContestBasic, 0)
-	err = models.GetContestList(keyword).Distinct("`contest_basic`.`id`").Count(&count).Error
-	if err != nil {
-		log.Println("GetContestList Count Error:", err)
-		return
-	}
 	err = models.GetContestList(keyword).Offset(page).Limit(size).Find(&list).Error
 	if err != nil {
 		log.Println("Get Contest List Error:", err)
 		return
 	}
+	err = models.GetContestList(keyword).Distinct("`contest_basic`.`id`").Count(&count).Error
+	if err != nil {
+		log.Println("GetContestList Count Error:", err)
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": 200,
 		"data": map[string]interface{}{
