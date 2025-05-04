@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"oj/define"
-	"oj/helper"
 	"oj/models"
 	"strconv"
 )
@@ -108,8 +107,7 @@ func ProblemCreate(c *gin.Context) {
 		})
 		return
 	}
-	identity := helper.GetUUID()
-	err = models.ProblemCreate(identity, in)
+	identity, err := models.ProblemCreate(in)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,

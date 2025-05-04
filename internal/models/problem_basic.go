@@ -50,7 +50,8 @@ func GetProblemDetail(identity string) (data *ProblemBasic, err error) {
 	return data, err
 }
 
-func ProblemCreate(identity string, in *define.ProblemBasic) (err error) {
+func ProblemCreate(in *define.ProblemBasic) (identity string, err error) {
+	identity = helper.GetUUID()
 	data := &ProblemBasic{
 		Identity:   identity,
 		Title:      in.Title,
@@ -75,8 +76,7 @@ func ProblemCreate(identity string, in *define.ProblemBasic) (err error) {
 	// 处理测试用例
 	testCaseBasics := make([]*TestCase, 0)
 	for _, v := range in.TestCases {
-		// 举个例子 {"input":"1 2\n","output":"3\n"}
-		testCaseBasic := &TestCase{
+		testCaseBasic := &TestCase{ // 举个例子 {"input":"1 2\n","output":"3\n"}
 			Identity:        helper.GetUUID(),
 			ProblemIdentity: identity,
 			Input:           v.Input,
@@ -89,7 +89,7 @@ func ProblemCreate(identity string, in *define.ProblemBasic) (err error) {
 	data.TestCases = testCaseBasics
 	// 创建问题
 	err = DB.Create(data).Error
-	return err
+	return identity, err
 }
 
 func ProblemModify(in *define.ProblemBasic) (err error) {
@@ -130,7 +130,7 @@ func ProblemModify(in *define.ProblemBasic) (err error) {
 				UpdatedAt:  MyTime(time.Now()),
 			})
 		}
-		err = tx.Create(&pcs).Error
+		err = tx.Create(pcs).Error
 		if err != nil {
 			return err
 		}
@@ -143,8 +143,7 @@ func ProblemModify(in *define.ProblemBasic) (err error) {
 		// 2、增加新的关联关系
 		tcs := make([]*TestCase, 0)
 		for _, v := range in.TestCases {
-			// 举个例子 {"input":"1 2\n","output":"3\n"}
-			tc := &TestCase{
+			tc := &TestCase{ // 举个例子 {"input":"1 2\n","output":"3\n"}
 				Identity:        helper.GetUUID(),
 				ProblemIdentity: in.Identity,
 				Input:           v.Input,

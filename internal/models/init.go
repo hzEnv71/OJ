@@ -7,11 +7,11 @@ import (
 	"log"
 )
 
-var DB = Init()
+var DB = InitMySQL()
 
-var RDB = InitRedisDB()
+var RDB = InitRedis()
 
-func Init() *gorm.DB {
+func InitMySQL() *gorm.DB {
 	dsn := "root:Li20031202@tcp(127.0.0.1:3306)/oj?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -20,7 +20,7 @@ func Init() *gorm.DB {
 	return db
 }
 
-func InitRedisDB() *redis.Client {
+func InitRedis() *redis.Client {
 	return redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "", // no password set

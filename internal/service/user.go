@@ -17,7 +17,7 @@ import (
 // GetUserDetail
 // @Tags 公共方法
 // @Summary 用户详情
-// @Param identity query string false "problem identity"
+// @Param identity query string false "user identity"
 // @Success 200 {string} json "{"code":"200","data":""}"
 // @Router /user-detail [get]
 func GetUserDetail(c *gin.Context) {
@@ -109,7 +109,7 @@ func SendCode(c *gin.Context) {
 		return
 	}
 	code := helper.GetRand()
-	models.RDB.Set(c, email, code, time.Second*300) //设置redis email过期时间5min
+	models.RDB.Set(c, email, code, time.Second*300) //设置redis code过期时间5min
 	err := helper.SendCode(email, code)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{

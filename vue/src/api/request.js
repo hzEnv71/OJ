@@ -26,7 +26,6 @@ service.interceptors.request.use(config => {
 		}
 		const token=localStorage.token
 		if(token){
-			
 			config.headers['Authorization']=token
 		}
 	return config

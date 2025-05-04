@@ -25,13 +25,11 @@ func (table *UserBasic) TableName() string {
 }
 
 func GetUserDetail(identity string) (data *UserBasic, err error) {
-	data = new(UserBasic)
 	err = DB.Omit("password").Where("identity = ? ", identity).Find(&data).Error
 	return data, err
 }
 
 func GetUserOne(username, password string) (data *UserBasic, err error) {
-	data = new(UserBasic)
 	err = DB.Where("name = ? AND password = ? ", username, password).First(&data).Error
 	return data, err
 }
