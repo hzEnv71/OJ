@@ -27,39 +27,29 @@ func (table *ProblemBasic) TableName() string {
 	return "problem_basic"
 }
 
-//func GetProblemList(keyword, categoryIdentity string) *gorm.DB {
-//	tx := DB.Model(new(ProblemBasic)).Distinct("`problem_basic`.`id`").Select("DISTINCT(`problem_basic`.`id`), `problem_basic`.`identity`, "+
-//		"`problem_basic`.`title`, `problem_basic`.`max_runtime`, `problem_basic`.`max_mem`, `problem_basic`.`pass_num`, "+
-//		"`problem_basic`.`submit_num`, `problem_basic`.`created_at`, `problem_basic`.`updated_at`, `problem_basic`.`deleted_at` ").Preload("ProblemCategories").Preload("ProblemCategories.CategoryBasic").
-//		Where("title like ? OR content like ? ", "%"+keyword+"%", "%"+keyword+"%")
-//	if categoryIdentity != "" {
-//		tx.Joins("RIGHT JOIN problem_category pc on pc.problem_id = problem_basic.id").
-//			Where("pc.category_id = (SELECT cb.id FROM category_basic cb WHERE cb.identity = ? )", categoryIdentity)
-//	}
-//	return tx.Order("problem_basic.id DESC")
-//}
-
 func GetProblemList(keyword, categoryIdentity string, page, size int) (data []*ProblemBasic, count int64, err error) {
 	data = make([]*ProblemBasic, 0)
-	tx := DB.Model(new(ProblemBasic)).Distinct("`problem_basic`.`id`").Select("DISTINCT(`problem_basic`.`id`), `problem_basic`.`identity`, "+
-		"`problem_basic`.`title`, `problem_basic`.`max_runtime`, `problem_basic`.`max_mem`, `problem_basic`.`pass_num`, "+
-		"`problem_basic`.`submit_num`, `problem_basic`.`created_at`, `problem_basic`.`updated_at`, `problem_basic`.`deleted_at` ").Preload("ProblemCategories").Preload("ProblemCategories.CategoryBasic").
+	tx := DB.Model(new(ProblemBasic)).
+		Distinct(`problem_basic.id`).
+		Select(`problem_basic.id`, `problem_basic.identity`, `problem_basic.title`, `problem_basic.max_runtime`, `problem_basic.max_mem`, `problem_basic.pass_num`, `submit_num`, `problem_basic.created_at`, `problem_basic.updated_at`, `problem_basic.deleted_at`).
+		Preload("ProblemCategories").
+		Preload("ProblemCategories.CategoryBasic").
 		Where("title like ? OR content like ? ", "%"+keyword+"%", "%"+keyword+"%")
 	if categoryIdentity != "" {
 		tx.Joins("RIGHT JOIN problem_category pc on pc.problem_id = problem_basic.id").
 			Where("pc.category_id = (SELECT cb.id FROM category_basic cb WHERE cb.identity = ? )", categoryIdentity)
 	}
-	err = tx.Order("problem_basic.id DESC").Offset(page).Limit(size).Find(&data).Error
-	tx.Order("problem_basic.id DESC").Distinct("`problem_basic`.`id`").Count(&count)
+	err = tx.Order("problem_basic.id DESC").Offset(page).Limit(size).Find(&data).Distinct(`problem_basic.id`).Count(&count).Error
 	return data, count, err
 }
+
 func GetProblemDetail(identity string) (data *ProblemBasic, err error) {
-	data = new(ProblemBasic)
 	err = DB.Where("identity = ?", identity).
 		Preload("ProblemCategories").Preload("ProblemCategories.CategoryBasic").
 		First(&data).Error
 	return data, err
 }
+
 func ProblemCreate(identity string, in *define.ProblemBasic) (err error) {
 	data := &ProblemBasic{
 		Identity:   identity,
@@ -101,6 +91,7 @@ func ProblemCreate(identity string, in *define.ProblemBasic) (err error) {
 	err = DB.Create(data).Error
 	return err
 }
+
 func ProblemModify(in *define.ProblemBasic) (err error) {
 	var modify = func(tx *gorm.DB) error {
 		// 问题基础信息保存 problem_basic

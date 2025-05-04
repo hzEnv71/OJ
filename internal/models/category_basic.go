@@ -25,6 +25,7 @@ func GetCategoryList(keyword string, page int, size int) (data []*CategoryBasic,
 		Count(&count).Limit(size).Offset(page).Find(&data).Error
 	return
 }
+
 func CategoryCreate(identity, name string, parentId int) (err error) {
 	category := &CategoryBasic{
 		Identity:  identity,
@@ -36,6 +37,7 @@ func CategoryCreate(identity, name string, parentId int) (err error) {
 	err = DB.Create(category).Error
 	return
 }
+
 func CategoryModify(identity, name string, parentId int) (err error) {
 	category := &CategoryBasic{
 		Identity:  identity,
@@ -46,6 +48,7 @@ func CategoryModify(identity, name string, parentId int) (err error) {
 	err = DB.Model(new(CategoryBasic)).Where("identity = ?", identity).Updates(category).Error
 	return
 }
+
 func CategoryDelete(identity string) (err error) {
 	err = DB.Where("identity = ?", identity).Delete(new(CategoryBasic)).Error
 	return
